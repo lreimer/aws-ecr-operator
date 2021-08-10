@@ -38,6 +38,14 @@ $ go get github.com/aws/aws-sdk-go-v2/service/ecr
 # define CRD in api/repository_types.go
 $ make generate && make manifests
 $ make build
+
+# run operator locally outside the cluster
+# see https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+# see https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
+$ export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+$ export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+$ export AWS_DEFAULT_REGION=eu-central-1
+$ make install run
 ```
 
 ## Maintainer
