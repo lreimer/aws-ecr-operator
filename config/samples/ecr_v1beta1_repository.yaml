@@ -1,0 +1,7 @@
+apiVersion: ecr.aws.cloud.qaware.de/v1beta1
+kind: Repository
+metadata:
+  name: repository-sample
+spec:
+  # Add fields here
+  foo: bar

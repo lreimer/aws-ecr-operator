@@ -1,0 +1,19 @@
+domain: aws.cloud.qaware.de
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: aws-ecr-operator
+repo: github.com/lreimer/aws-ecr-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: aws.cloud.qaware.de
+  group: ecr
+  kind: Repository
+  path: github.com/lreimer/aws-ecr-operator/api/v1beta1
+  version: v1beta1
+version: "3"
