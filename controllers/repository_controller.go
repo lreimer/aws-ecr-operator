@@ -157,6 +157,8 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 		logger.Info("Updated ImageScanningConfiguration for ECR repository.", "RepositoryName", scanout.RepositoryName,
 			"ImageScanningConfiguration", scanout.ImageScanningConfiguration)
+
+		// ATTENTION: update of AWS ECR repository EncryptionConfiguration not possible
 	}
 
 	return ctrl.Result{}, nil
@@ -179,14 +181,19 @@ func createImageTagMutability(r ecrv1beta1.Repository) types.ImageTagMutability 
 }
 
 func createImageScanningConfiguration(r ecrv1beta1.Repository) *types.ImageScanningConfiguration {
-	if r.Spec.ImageScanningConfiguration == nil {
+	c := r.Spec.ImageScanningConfiguration
+	if c == nil {
 		return nil
 	}
-	return &types.ImageScanningConfiguration{ScanOnPush: r.Spec.ImageScanningConfiguration.ScanOnPush}
+	return &types.ImageScanningConfiguration{ScanOnPush: c.ScanOnPush}
 }
 
 func createEncryptionConfiguration(r ecrv1beta1.Repository) *types.EncryptionConfiguration {
-	return nil
+	c := r.Spec.EncryptionConfiguration
+	if c == nil {
+		return nil
+	}
+	return &types.EncryptionConfiguration{EncryptionType: types.EncryptionType(c.EncryptionType), KmsKey: c.KmsKey}
 }
 
 func createTags(r ecrv1beta1.Repository) []types.Tag {
