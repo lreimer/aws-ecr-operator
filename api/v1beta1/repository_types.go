@@ -39,12 +39,17 @@ type RepositorySpec struct {
 	// (Optional) The tag mutability setting for the repository.
 	// +kubebuilder:default=IMMUTABLE
 	// +kubebuilder:validation:Enum=MUTABLE;IMMUTABLE
-	ImageTagMutability ImageTagMutability `json:"imageTagMutability,omitempty"`
+	ImageTagMutability ImageTagMutability `json:"imageTagMutability"`
 
 	// (Optional) The ImageScanningConfiguration for the repository.
 	// +optional
 	// +nullable
 	ImageScanningConfiguration *ImageScanningConfiguration `json:"imageScanningConfiguration,omitempty"`
+
+	// (Optional) The EncryptionConfiguration for the repository.
+	// +optional
+	// +nullable
+	EncryptionConfiguration *EncryptionConfiguration `json:"encryptionConfiguration,omitempty"`
 }
 
 // The ImageTagMutability type defines MUTABLE or IMMUTABLE
@@ -55,6 +60,22 @@ type ImageScanningConfiguration struct {
 	// Determines whether images are scanned after being pushed
 	// +kubebuilder:default=true
 	ScanOnPush bool `json:"scanOnPush"`
+}
+
+// The EncryptionType type defines AES256 or KMS
+type EncryptionType string
+
+type EncryptionConfiguration struct {
+	// This member is required.
+	// +kubebuilder:default=AES256
+	// +kubebuilder:validation:Enum=AES256;KMS
+	EncryptionType EncryptionType `json:"encryptionType"`
+
+	// If you use the KMS encryption type, specify the CMK to use for encryption. The
+	// alias, key ID, or full ARN of the CMK can be specified. The key must exist in
+	// the same Region as the repository. If no key is specified, the default AWS
+	// managed CMK for Amazon ECR will be used.
+	KmsKey *string `json:"kmsKey,omitempty"`
 }
 
 // RepositoryStatus defines the observed state of Repository

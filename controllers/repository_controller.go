@@ -108,11 +108,8 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			RepositoryName:             aws.String(repository.Name),
 			ImageTagMutability:         createImageTagMutability(*repository),
 			ImageScanningConfiguration: createImageScanningConfiguration(*repository),
+			EncryptionConfiguration:    createEncryptionConfiguration(*repository),
 			Tags:                       createTags(*repository),
-		}
-
-		if repository.Spec.ImageScanningConfiguration != nil {
-			input.ImageScanningConfiguration = nil
 		}
 
 		output, err := client.CreateRepository(context.TODO(), input)
@@ -186,6 +183,10 @@ func createImageScanningConfiguration(r ecrv1beta1.Repository) *types.ImageScann
 		return nil
 	}
 	return &types.ImageScanningConfiguration{ScanOnPush: r.Spec.ImageScanningConfiguration.ScanOnPush}
+}
+
+func createEncryptionConfiguration(r ecrv1beta1.Repository) *types.EncryptionConfiguration {
+	return nil
 }
 
 func createTags(r ecrv1beta1.Repository) []types.Tag {

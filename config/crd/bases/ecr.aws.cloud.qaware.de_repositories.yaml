@@ -36,6 +36,27 @@ spec:
           spec:
             description: RepositorySpec defines the desired state of Repository
             properties:
+              encryptionConfiguration:
+                description: (Optional) The EncryptionConfiguration for the repository.
+                nullable: true
+                properties:
+                  encryptionType:
+                    default: AES256
+                    description: This member is required.
+                    enum:
+                    - AES256
+                    - KMS
+                    type: string
+                  kmsKey:
+                    description: If you use the KMS encryption type, specify the CMK
+                      to use for encryption. The alias, key ID, or full ARN of the
+                      CMK can be specified. The key must exist in the same Region
+                      as the repository. If no key is specified, the default AWS managed
+                      CMK for Amazon ECR will be used.
+                    type: string
+                required:
+                - encryptionType
+                type: object
               imageScanningConfiguration:
                 description: (Optional) The ImageScanningConfiguration for the repository.
                 nullable: true
@@ -55,6 +76,8 @@ spec:
                 - MUTABLE
                 - IMMUTABLE
                 type: string
+            required:
+            - imageTagMutability
             type: object
           status:
             description: RepositoryStatus defines the observed state of Repository
