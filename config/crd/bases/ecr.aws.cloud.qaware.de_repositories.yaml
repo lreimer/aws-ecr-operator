@@ -36,6 +36,18 @@ spec:
           spec:
             description: RepositorySpec defines the desired state of Repository
             properties:
+              imageScanningConfiguration:
+                description: (Optional) The ImageScanningConfiguration for the repository.
+                nullable: true
+                properties:
+                  scanOnPush:
+                    default: true
+                    description: Determines whether images are scanned after being
+                      pushed
+                    type: boolean
+                required:
+                - scanOnPush
+                type: object
               imageTagMutability:
                 default: IMMUTABLE
                 description: (Optional) The tag mutability setting for the repository.

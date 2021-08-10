@@ -25,7 +25,6 @@ SOFTWARE.
 package v1beta1
 
 import (
-	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -40,7 +39,22 @@ type RepositorySpec struct {
 	// (Optional) The tag mutability setting for the repository.
 	// +kubebuilder:default=IMMUTABLE
 	// +kubebuilder:validation:Enum=MUTABLE;IMMUTABLE
-	ImageTagMutability types.ImageTagMutability `json:"imageTagMutability,omitempty"`
+	ImageTagMutability ImageTagMutability `json:"imageTagMutability,omitempty"`
+
+	// (Optional) The ImageScanningConfiguration for the repository.
+	// +optional
+	// +nullable
+	ImageScanningConfiguration *ImageScanningConfiguration `json:"imageScanningConfiguration,omitempty"`
+}
+
+// The ImageTagMutability type defines MUTABLE or IMMUTABLE
+type ImageTagMutability string
+
+// The ImageScanningConfiguration for the repository.
+type ImageScanningConfiguration struct {
+	// Determines whether images are scanned after being pushed
+	// +kubebuilder:default=true
+	ScanOnPush bool `json:"scanOnPush"`
 }
 
 // RepositoryStatus defines the observed state of Repository

@@ -38,6 +38,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 )
 
 // RepositoryReconciler reconciles a Repository object
@@ -104,8 +105,14 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if len(repolist.Repositories) == 0 {
 		// reconcile and create AWS ECR repository
 		input := &ecr.CreateRepositoryInput{
-			RepositoryName:     aws.String(repository.Name),
-			ImageTagMutability: repository.Spec.ImageTagMutability,
+			RepositoryName:             aws.String(repository.Name),
+			ImageTagMutability:         createImageTagMutability(*repository),
+			ImageScanningConfiguration: createImageScanningConfiguration(*repository),
+			Tags:                       createTags(*repository),
+		}
+
+		if repository.Spec.ImageScanningConfiguration != nil {
+			input.ImageScanningConfiguration = nil
 		}
 
 		output, err := client.CreateRepository(context.TODO(), input)
@@ -128,19 +135,31 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, err
 		}
 	} else {
-		// reconcile and update AWS ECR repository
-		output, err := client.PutImageTagMutability(context.TODO(), &ecr.PutImageTagMutabilityInput{
+		// reconcile and update AWS ECR repository ImageTagMutability
+		mutout, muterr := client.PutImageTagMutability(context.TODO(), &ecr.PutImageTagMutabilityInput{
 			RepositoryName:     aws.String(repository.Name),
-			ImageTagMutability: repository.Spec.ImageTagMutability,
+			ImageTagMutability: createImageTagMutability(*repository),
 		})
-
-		if err != nil {
-			logger.Error(err, "Could not updated imageTagMutability for ECR repository.")
-			return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, err
+		if muterr != nil {
+			logger.Error(muterr, "Could not update ImageTagMutability for ECR repository.")
+			return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, muterr
 		}
 
-		logger.Info("Updated imageTagMutability for ECR repository.", "RepositoryName", output.RepositoryName,
-			"ImageTagMutability", output.ImageTagMutability)
+		logger.Info("Updated ImageTagMutability for ECR repository.", "RepositoryName", mutout.RepositoryName,
+			"ImageTagMutability", mutout.ImageTagMutability)
+
+		// reconcile and update AWS ECR repository ImageScanningConfiguration
+		scanout, scanerr := client.PutImageScanningConfiguration(context.TODO(), &ecr.PutImageScanningConfigurationInput{
+			RepositoryName:             aws.String(repository.Name),
+			ImageScanningConfiguration: createImageScanningConfiguration(*repository),
+		})
+		if scanerr != nil {
+			logger.Error(muterr, "Could not update ImageScanningConfiguration for ECR repository.")
+			return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, scanerr
+		}
+
+		logger.Info("Updated ImageScanningConfiguration for ECR repository.", "RepositoryName", scanout.RepositoryName,
+			"ImageScanningConfiguration", scanout.ImageScanningConfiguration)
 	}
 
 	return ctrl.Result{}, nil
@@ -155,6 +174,26 @@ func createEcrClient() (*ecr.Client, error) {
 
 	client := ecr.NewFromConfig(cfg)
 	return client, nil
+}
+
+func createImageTagMutability(r ecrv1beta1.Repository) types.ImageTagMutability {
+	value := string(r.Spec.ImageTagMutability)
+	return types.ImageTagMutability(value)
+}
+
+func createImageScanningConfiguration(r ecrv1beta1.Repository) *types.ImageScanningConfiguration {
+	if r.Spec.ImageScanningConfiguration == nil {
+		return nil
+	}
+	return &types.ImageScanningConfiguration{ScanOnPush: r.Spec.ImageScanningConfiguration.ScanOnPush}
+}
+
+func createTags(r ecrv1beta1.Repository) []types.Tag {
+	tags := make([]types.Tag, 0)
+	for k, v := range r.Labels {
+		tags = append(tags, types.Tag{Key: aws.String(k), Value: aws.String(v)})
+	}
+	return tags
 }
 
 // SetupWithManager sets up the controller with the Manager.
