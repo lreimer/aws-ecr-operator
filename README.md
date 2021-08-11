@@ -42,10 +42,30 @@ $ make build
 # run operator locally outside the cluster
 # see https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
 # see https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
+# THESE ARE DUMMY CREDENTIALS :-) !
 $ export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 $ export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 $ export AWS_DEFAULT_REGION=eu-central-1
 $ make install run
+
+# try to create an ECR and do cleanup afterwards
+$ kubectl apply -k config/samples
+$ kubectl delete -k config/samples
+
+# for (local) in-cluster deployment
+# you need to add the above environment variables to a hidden .env.secret file
+# MAKE SURE NOT TO COMMIT THIS FILE :-) !
+$ echo AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE >> config/manager/.env.secret
+$ echo AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY >> config/manager/.env.secret
+$ echo AWS_DEFAULT_REGION=eu-central-1 >> config/manager/.env.secret
+
+# build Docker image locally (optional) and deploy
+$ make docker-build
+$ make deploy
+
+# try to create an ECR and do cleanup afterwards
+$ kubectl apply -k config/samples
+$ kubectl delete -k config/samples
 ```
 
 ## Maintainer

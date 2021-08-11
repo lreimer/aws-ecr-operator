@@ -31,6 +31,9 @@ spec:
         - --leader-elect
         image: controller:latest
         name: manager
+        envFrom:
+        - secretRef:
+            name: manager-aws-credentials
         securityContext:
           allowPrivilegeEscalation: false
         livenessProbe:
