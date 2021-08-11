@@ -26,12 +26,14 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	ecrv1beta1 "github.com/lreimer/aws-ecr-operator/api/v1beta1"
 
@@ -73,15 +75,23 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	repository := &ecrv1beta1.Repository{}
 	k8serr := r.Get(ctx, req.NamespacedName, repository)
 	if k8serr != nil {
-		if errors.IsNotFound(k8serr) {
+		if k8serrors.IsNotFound(k8serr) {
 			// delete the associated AWS ECR repository
 			output, err := client.DeleteRepository(context.TODO(), &ecr.DeleteRepositoryInput{
-				RepositoryName: aws.String(repository.Name),
+				// need to use Name from request
+				RepositoryName: aws.String(req.Name),
 				Force:          true,
 			})
 			if err != nil {
-				logger.Error(err, "Could not delete ECR repository.")
-				return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, err
+				var rnfe *types.RepositoryNotFoundException
+				if errors.As(err, &rnfe) {
+					// check for already deleted, might occur due to timing and duplicate reconcile
+					logger.Info("Repository already deleted. Skipping.")
+					return ctrl.Result{}, nil
+				} else {
+					logger.Error(err, "Could not delete ECR repository.")
+					return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, err
+				}
 			}
 
 			logger.Info("Successfully deleted ECR repository.", "repositoryUri", output.Repository.RepositoryUri)
@@ -92,74 +102,85 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, k8serr
 	}
 
-	// get a list of all matching AWS ECR repositories
-	repolist, repoerr := client.DescribeRepositories(context.TODO(), &ecr.DescribeRepositoriesInput{
+	// try to get the matching AWS ECR repository
+	_, repoerr := client.DescribeRepositories(context.TODO(), &ecr.DescribeRepositoriesInput{
 		RepositoryNames: []string{repository.Name},
-		MaxResults:      aws.Int32(1),
 	})
 	if repoerr != nil {
-		logger.Error(repoerr, "Could not retrieve list of ECR repository.")
-		return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, repoerr
+		var rnfe *types.RepositoryNotFoundException
+		if errors.As(repoerr, &rnfe) {
+			// reconcile and create AWS ECR repository
+			input := &ecr.CreateRepositoryInput{
+				RepositoryName:             aws.String(repository.Name),
+				ImageTagMutability:         createImageTagMutability(*repository),
+				ImageScanningConfiguration: createImageScanningConfiguration(*repository),
+				EncryptionConfiguration:    createEncryptionConfiguration(*repository),
+				Tags:                       createTags(*repository),
+			}
+
+			output, err := client.CreateRepository(context.TODO(), input)
+			if err != nil {
+				// check for duplicate creation, might occur due to timing and duplicate reconcile
+				logger.Info("Checking for RepositoryAlreadyExistsException due to CreateRepository error.", "error", err)
+
+				var raee *types.RepositoryAlreadyExistsException
+				if errors.As(err, &raee) {
+					logger.Info("Repository already exists. Skipping.")
+					return ctrl.Result{}, nil
+				} else {
+					logger.Error(err, "Could not create ECR repository.")
+					return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, err
+				}
+			}
+
+			logger.Info("Created ECR repository.", "RepositoryName", output.Repository.RepositoryName,
+				"RepositoryUri", output.Repository.RepositoryUri)
+
+			// we need to update the status
+			repository.Status.RepositoryArn = *output.Repository.RepositoryArn
+			repository.Status.RegistryId = *output.Repository.RegistryId
+			repository.Status.RepositoryUri = *output.Repository.RepositoryUri
+
+			err = r.Status().Update(ctx, repository)
+			if err != nil {
+				logger.Error(err, "Failed to update Repository status")
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{}, nil
+		} else {
+			logger.Error(repoerr, "Could not retrieve list of ECR repository.")
+			return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, repoerr
+		}
 	}
 
-	if len(repolist.Repositories) == 0 {
-		// reconcile and create AWS ECR repository
-		input := &ecr.CreateRepositoryInput{
-			RepositoryName:             aws.String(repository.Name),
-			ImageTagMutability:         createImageTagMutability(*repository),
-			ImageScanningConfiguration: createImageScanningConfiguration(*repository),
-			EncryptionConfiguration:    createEncryptionConfiguration(*repository),
-			Tags:                       createTags(*repository),
-		}
-
-		output, err := client.CreateRepository(context.TODO(), input)
-		if err != nil {
-			logger.Error(err, "Could not create ECR repository.")
-			return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, err
-		}
-
-		logger.Info("Created ECR repository.", "RepositoryName", output.Repository.RepositoryName,
-			"RepositoryUri", output.Repository.RepositoryUri)
-
-		// we need to update the status
-		repository.Status.RepositoryArn = *output.Repository.RepositoryArn
-		repository.Status.RegistryId = *output.Repository.RegistryId
-		repository.Status.RepositoryUri = *output.Repository.RepositoryUri
-
-		err = r.Status().Update(ctx, repository)
-		if err != nil {
-			logger.Error(err, "Failed to update Repository status")
-			return ctrl.Result{}, err
-		}
-	} else {
-		// reconcile and update AWS ECR repository ImageTagMutability
-		mutout, muterr := client.PutImageTagMutability(context.TODO(), &ecr.PutImageTagMutabilityInput{
-			RepositoryName:     aws.String(repository.Name),
-			ImageTagMutability: createImageTagMutability(*repository),
-		})
-		if muterr != nil {
-			logger.Error(muterr, "Could not update ImageTagMutability for ECR repository.")
-			return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, muterr
-		}
-
-		logger.Info("Updated ImageTagMutability for ECR repository.", "RepositoryName", mutout.RepositoryName,
-			"ImageTagMutability", mutout.ImageTagMutability)
-
-		// reconcile and update AWS ECR repository ImageScanningConfiguration
-		scanout, scanerr := client.PutImageScanningConfiguration(context.TODO(), &ecr.PutImageScanningConfigurationInput{
-			RepositoryName:             aws.String(repository.Name),
-			ImageScanningConfiguration: createImageScanningConfiguration(*repository),
-		})
-		if scanerr != nil {
-			logger.Error(muterr, "Could not update ImageScanningConfiguration for ECR repository.")
-			return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, scanerr
-		}
-
-		logger.Info("Updated ImageScanningConfiguration for ECR repository.", "RepositoryName", scanout.RepositoryName,
-			"ImageScanningConfiguration", scanout.ImageScanningConfiguration)
-
-		// ATTENTION: update of AWS ECR repository EncryptionConfiguration not possible
+	// reconcile and update AWS ECR repository ImageTagMutability
+	mutout, muterr := client.PutImageTagMutability(context.TODO(), &ecr.PutImageTagMutabilityInput{
+		RepositoryName:     aws.String(repository.Name),
+		ImageTagMutability: createImageTagMutability(*repository),
+	})
+	if muterr != nil {
+		logger.Error(muterr, "Could not update ImageTagMutability for ECR repository.")
+		return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, muterr
 	}
+
+	logger.Info("Updated ImageTagMutability for ECR repository.", "RepositoryName", mutout.RepositoryName,
+		"ImageTagMutability", mutout.ImageTagMutability)
+
+	// reconcile and update AWS ECR repository ImageScanningConfiguration
+	scanout, scanerr := client.PutImageScanningConfiguration(context.TODO(), &ecr.PutImageScanningConfigurationInput{
+		RepositoryName:             aws.String(repository.Name),
+		ImageScanningConfiguration: createImageScanningConfiguration(*repository),
+	})
+	if scanerr != nil {
+		logger.Error(muterr, "Could not update ImageScanningConfiguration for ECR repository.")
+		return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, scanerr
+	}
+
+	logger.Info("Updated ImageScanningConfiguration for ECR repository.", "RepositoryName", scanout.RepositoryName,
+		"ImageScanningConfiguration", scanout.ImageScanningConfiguration)
+
+	// ATTENTION: update of AWS ECR repository EncryptionConfiguration not possible
 
 	return ctrl.Result{}, nil
 }
@@ -208,5 +229,6 @@ func createTags(r ecrv1beta1.Repository) []types.Tag {
 func (r *RepositoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&ecrv1beta1.Repository{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }
