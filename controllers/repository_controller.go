@@ -34,11 +34,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	ecrv1beta1 "github.com/lreimer/aws-ecr-operator/api/v1beta1"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 )
@@ -63,14 +63,15 @@ type RepositoryReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.9.2/pkg/reconcile
 func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := ctrl.Log.WithName("controllers").WithName("Repository").WithValues("repository", req.NamespacedName)
+	logger := ctrllog.FromContext(ctx).WithValues("repository", req.NamespacedName)
 
-	client, awserr := createEcrClient()
+	client, awserr := CreateEcrClient()
 	if awserr != nil {
 		logger.Error(awserr, "Unable to create ECR client.")
 		return ctrl.Result{}, awserr
 	}
 
+	// TODO: add Finalizer logic to delete Repository
 	// lookup the Repository instance for this reconcile request
 	repository := &ecrv1beta1.Repository{}
 	k8serr := r.Get(ctx, req.NamespacedName, repository)
@@ -194,17 +195,6 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// ATTENTION: update of AWS ECR repository EncryptionConfiguration not possible
 
 	return ctrl.Result{}, nil
-}
-
-func createEcrClient() (*ecr.Client, error) {
-	// load the default AWS config from ENV or shared files
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		return nil, err
-	}
-
-	client := ecr.NewFromConfig(cfg)
-	return client, nil
 }
 
 func createImageTagMutability(r ecrv1beta1.Repository) types.ImageTagMutability {

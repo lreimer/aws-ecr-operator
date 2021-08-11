@@ -1,4 +1,5 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
 - ecr_v1beta1_repository.yaml
+- ecr_v1beta1_repositorypolicy.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

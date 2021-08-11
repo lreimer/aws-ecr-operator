@@ -1,0 +1,20 @@
+# permissions for end users to view repositorypolicies.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: repositorypolicy-viewer-role
+rules:
+- apiGroups:
+  - ecr.aws.cloud.qaware.de
+  resources:
+  - repositorypolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ecr.aws.cloud.qaware.de
+  resources:
+  - repositorypolicies/status
+  verbs:
+  - get

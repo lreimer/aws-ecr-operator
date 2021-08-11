@@ -32,3 +32,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - ecr.aws.cloud.qaware.de
+  resources:
+  - repositorypolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ecr.aws.cloud.qaware.de
+  resources:
+  - repositorypolicies/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ecr.aws.cloud.qaware.de
+  resources:
+  - repositorypolicies/status
+  verbs:
+  - get
+  - patch
+  - update

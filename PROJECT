@@ -16,4 +16,13 @@ resources:
   kind: Repository
   path: github.com/lreimer/aws-ecr-operator/api/v1beta1
   version: v1beta1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: aws.cloud.qaware.de
+  group: ecr
+  kind: RepositoryPolicy
+  path: github.com/lreimer/aws-ecr-operator/api/v1beta1
+  version: v1beta1
 version: "3"

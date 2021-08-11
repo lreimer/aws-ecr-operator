@@ -2,6 +2,7 @@
 
 A K8s operator to manage an AWS ECR Repository as a custom resource.
 
+Simply manage your ECR repositories using the `Repository` CRD.
 ```yaml
 apiVersion: ecr.aws.cloud.qaware.de/v1beta1
 kind: Repository
@@ -23,12 +24,40 @@ spec:
     # kmsKey: 
 ```
 
+You can apply IAM policies to your repository to restrict and controll access
+using the `RepositoryPolicy` CRD.
+```yaml
+apiVersion: ecr.aws.cloud.qaware.de/v1beta1
+kind: RepositoryPolicy
+metadata:
+  name: demo-microservice-policy
+spec:
+  repositoryName: demo-microservice
+  policyText: |-
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowAll",
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": "arn:aws:iam::450802564356:user/mario-leander.reimer"
+                },
+                "Action": [
+                    "ecr:*"
+                ]
+            }
+        ]
+    }
+```
+
 ## Development
 
 ```bash
 # perform skaffolding with the Operator SDK
 $ operator-sdk init --project-version=3 --domain aws.cloud.qaware.de --repo github.com/lreimer/aws-ecr-operator
 $ operator-sdk create api --group ecr --version=v1beta1 --kind Repository --resource --controller
+$ operator-sdk create api --group ecr --version=v1beta1 --kind RepositoryPolicy --resource --controller
 
 # install AWS SDK for Go v2
 $ go get github.com/aws/aws-sdk-go-v2
