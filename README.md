@@ -10,7 +10,7 @@ metadata:
   name: demo-microservice
   # will be used as repository tags
   labels:
-    app: nginx
+    app: demo-microservice
 spec:
   # valid values are MUTABLE or IMMUTABLE. Defaults to IMMUTABLE
   imageTagMutability: IMMUTABLE
