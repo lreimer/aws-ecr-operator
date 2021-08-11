@@ -180,6 +180,17 @@ func (r *RepositoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	logger.Info("Updated ImageScanningConfiguration for ECR repository.", "RepositoryName", scanout.RepositoryName,
 		"ImageScanningConfiguration", scanout.ImageScanningConfiguration)
 
+	// reconcile and update AWS ECR repository tags
+	_, tagerr := client.TagResource(context.TODO(), &ecr.TagResourceInput{
+		ResourceArn: &repository.Status.RepositoryArn,
+		Tags:        createTags(*repository),
+	})
+	if tagerr != nil {
+		logger.Error(tagerr, "Could not update Tags for ECR repository.")
+		return ctrl.Result{Requeue: true, RequeueAfter: time.Duration(5) * time.Second}, tagerr
+	}
+	logger.Info("Updated Tags for ECR repository.", "ResourceArn", &repository.Status.RepositoryArn)
+
 	// ATTENTION: update of AWS ECR repository EncryptionConfiguration not possible
 
 	return ctrl.Result{}, nil
