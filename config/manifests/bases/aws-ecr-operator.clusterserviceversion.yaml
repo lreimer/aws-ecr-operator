@@ -1,0 +1,49 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: aws-ecr-operator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Repository is the Schema for the repositories API
+      displayName: Repository
+      kind: Repository
+      name: repositories.ecr.aws.cloud.qaware.de
+      version: v1beta1
+  description: A K8s operator to manage an AWS ECR Repository as a custom resource.
+  displayName: AWS ECR Operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - aws
+  - aws-ecr
+  links:
+  - name: Aws Ecr Operator
+    url: https://aws-ecr-operator.domain
+  maintainers:
+  - email: mario-leander.reimer@qaware.de
+    name: lreimer
+  maturity: alpha
+  provider:
+    name: M.-Leander Reimer
+    url: https://github.com/lreimer/aws-ecr-operator
+  version: 0.0.0
