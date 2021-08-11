@@ -36,6 +36,7 @@ $ go get github.com/aws/aws-sdk-go-v2/config
 $ go get github.com/aws/aws-sdk-go-v2/service/ecr
 
 # define CRD in api/repository_types.go
+# see https://book.kubebuilder.io/reference/markers/crd-validation.html
 $ make generate && make manifests
 $ make build
 
