@@ -1,8 +1,6 @@
 # AWS ECR Operator
 
-A K8s operator to manage an AWS ECR Repository as a custom resource.
-
-Simply manage your ECR repositories using the `Repository` CRD.
+A K8s operator to manage an AWS ECR Repository as a custom resource. Simply manage your ECR repositories using the `Repository` CRD.
 ```yaml
 apiVersion: ecr.aws.cloud.qaware.de/v1beta1
 kind: Repository
