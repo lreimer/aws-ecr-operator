@@ -132,9 +132,9 @@ func (r *RepositoryLifecycleReconciler) Reconcile(ctx context.Context, req ctrl.
 	logger.Info("Successfully set ECR LifecyclePolicy.", "RepositoryName", setout.RepositoryName, "LifecyclePolicyText", setout.LifecyclePolicyText)
 
 	// add finalizer for this CR
-	if !controllerutil.ContainsFinalizer(repositoryLifecycle, ecrPolicyFinalizer) {
+	if !controllerutil.ContainsFinalizer(repositoryLifecycle, ecrLifecycleFinalizer) {
 		logger.Info("Update Finalizer and OwnerReference for RepositoryLifecycle.")
-		controllerutil.AddFinalizer(repositoryLifecycle, ecrPolicyFinalizer)
+		controllerutil.AddFinalizer(repositoryLifecycle, ecrLifecycleFinalizer)
 		controllerutil.SetOwnerReference(repository, repositoryLifecycle, r.Scheme)
 		upderr := r.Update(ctx, repositoryLifecycle)
 		if upderr != nil {
