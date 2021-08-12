@@ -18,4 +18,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: lreimer/aws-ecr-operator
-  newTag: 1.1.0
+  newTag: v1.1.0
