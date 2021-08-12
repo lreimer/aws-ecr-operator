@@ -52,7 +52,7 @@ type RepositoryPolicyReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-const ecrFinalizer = "ecr.aws.cloud.qaware.de/finalizer"
+const ecrPolicyFinalizer = "policy.ecr.aws.cloud.qaware.de/finalizer"
 
 //+kubebuilder:rbac:groups=ecr.aws.cloud.qaware.de,resources=repositorypolicies,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ecr.aws.cloud.qaware.de,resources=repositorypolicies/status,verbs=get;update;patch
@@ -60,10 +60,6 @@ const ecrFinalizer = "ecr.aws.cloud.qaware.de/finalizer"
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the RepositoryPolicy object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.9.2/pkg/reconcile
@@ -94,7 +90,7 @@ func (r *RepositoryPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// indicated by the deletion timestamp being set.
 	isRepositoryPolicyMarkedToBeDeleted := repositoryPolicy.GetDeletionTimestamp() != nil
 	if isRepositoryPolicyMarkedToBeDeleted {
-		if controllerutil.ContainsFinalizer(repositoryPolicy, ecrFinalizer) {
+		if controllerutil.ContainsFinalizer(repositoryPolicy, ecrPolicyFinalizer) {
 			// Run finalization logic for repositoryPolicy. If the
 			// finalization logic fails, don't remove the finalizer so
 			// that we can retry during the next reconciliation.
@@ -102,9 +98,9 @@ func (r *RepositoryPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				return ctrl.Result{}, err
 			}
 
-			// Remove memcachedFinalizer. Once all finalizers have been
+			// Remove ecrPolicyFinalizer. Once all finalizers have been
 			// removed, the object will be deleted.
-			controllerutil.RemoveFinalizer(repositoryPolicy, ecrFinalizer)
+			controllerutil.RemoveFinalizer(repositoryPolicy, ecrPolicyFinalizer)
 			err := r.Update(ctx, repositoryPolicy)
 			if err != nil {
 				return ctrl.Result{}, err
@@ -137,9 +133,9 @@ func (r *RepositoryPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	logger.Info("Successfully set ECR RepositoryPolicy.", "RepositoryName", setout.RepositoryName, "PolicyText", setout.PolicyText)
 
 	// add finalizer for this CR
-	if !controllerutil.ContainsFinalizer(repositoryPolicy, ecrFinalizer) {
+	if !controllerutil.ContainsFinalizer(repositoryPolicy, ecrPolicyFinalizer) {
 		logger.Info("Update Finalizer and OwnerReference for RepositoryPolicy.")
-		controllerutil.AddFinalizer(repositoryPolicy, ecrFinalizer)
+		controllerutil.AddFinalizer(repositoryPolicy, ecrPolicyFinalizer)
 		controllerutil.SetOwnerReference(repository, repositoryPolicy, r.Scheme)
 		upderr := r.Update(ctx, repositoryPolicy)
 		if upderr != nil {
