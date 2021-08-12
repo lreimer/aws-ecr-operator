@@ -15,6 +15,17 @@ spec:
       kind: Repository
       name: repositories.ecr.aws.cloud.qaware.de
       version: v1beta1
+    - description: RepositoryLifecycle is the Schema for the repositorylifecycles
+        API
+      displayName: Repository Lifecycle
+      kind: RepositoryLifecycle
+      name: repositorylifecycles.ecr.aws.cloud.qaware.de
+      version: v1beta1
+    - description: RepositoryPolicy is the Schema for the repositorypolicies API
+      displayName: Repository Policy
+      kind: RepositoryPolicy
+      name: repositorypolicies.ecr.aws.cloud.qaware.de
+      version: v1beta1
   description: A K8s operator to manage an AWS ECR Repository as a custom resource.
   displayName: AWS ECR Operator
   icon:

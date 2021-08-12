@@ -22,12 +22,34 @@ metadata:
             },
             "imageTagMutability": "IMMUTABLE"
           }
+        },
+        {
+          "apiVersion": "ecr.aws.cloud.qaware.de/v1beta1",
+          "kind": "RepositoryLifecycle",
+          "metadata": {
+            "name": "repository-sample-lifecycle"
+          },
+          "spec": {
+            "lifecyclePolicyText": "{\n  \"rules\": [\n      {\n          \"rulePriority\": 1,\n          \"description\": \"Expire images older than 14 days\",\n          \"selection\": {\n              \"tagStatus\": \"untagged\",\n              \"countType\": \"sinceImagePushed\",\n              \"countUnit\": \"days\",\n              \"countNumber\": 14\n          },\n          \"action\": {\n              \"type\": \"expire\"\n          }\n      }\n  ]\n}",
+            "repositoryName": "repository-sample"
+          }
+        },
+        {
+          "apiVersion": "ecr.aws.cloud.qaware.de/v1beta1",
+          "kind": "RepositoryPolicy",
+          "metadata": {
+            "name": "repository-sample-policy"
+          },
+          "spec": {
+            "policyText": "{\n    \"Version\": \"2012-10-17\",\n    \"Statement\": [\n        {\n            \"Sid\": \"AllowAll\",\n            \"Effect\": \"Allow\",\n            \"Principal\": {\n                \"AWS\": \"arn:aws:iam::450802564356:user/mario-leander.reimer\"\n            },\n            \"Action\": [\n                \"ecr:*\"\n            ]\n        }\n    ]\n}",
+            "repositoryName": "repository-sample"
+          }
         }
       ]
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.10.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-  name: aws-ecr-operator.v1.0.0
+  name: aws-ecr-operator.v1.1.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -37,6 +59,17 @@ spec:
       displayName: Repository
       kind: Repository
       name: repositories.ecr.aws.cloud.qaware.de
+      version: v1beta1
+    - description: RepositoryLifecycle is the Schema for the repositorylifecycles
+        API
+      displayName: Repository Lifecycle
+      kind: RepositoryLifecycle
+      name: repositorylifecycles.ecr.aws.cloud.qaware.de
+      version: v1beta1
+    - description: RepositoryPolicy is the Schema for the repositorypolicies API
+      displayName: Repository Policy
+      kind: RepositoryPolicy
+      name: repositorypolicies.ecr.aws.cloud.qaware.de
       version: v1beta1
   description: A K8s operator to manage an AWS ECR Repository as a custom resource.
   displayName: AWS ECR Operator
@@ -69,6 +102,58 @@ spec:
           - ecr.aws.cloud.qaware.de
           resources:
           - repositories/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ecr.aws.cloud.qaware.de
+          resources:
+          - repositorylifecycles
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ecr.aws.cloud.qaware.de
+          resources:
+          - repositorylifecycles/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ecr.aws.cloud.qaware.de
+          resources:
+          - repositorylifecycles/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ecr.aws.cloud.qaware.de
+          resources:
+          - repositorypolicies
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ecr.aws.cloud.qaware.de
+          resources:
+          - repositorypolicies/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ecr.aws.cloud.qaware.de
+          resources:
+          - repositorypolicies/status
           verbs:
           - get
           - patch
@@ -121,7 +206,7 @@ spec:
                 envFrom:
                 - secretRef:
                     name: aws-ecr-operator-manager-aws-credentials
-                image: lreimer/aws-ecr-operator:1.0.0
+                image: lreimer/aws-ecr-operator:1.1.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -196,13 +281,13 @@ spec:
   - aws
   - aws-ecr
   links:
-  - name: AWS ECR Operator
-    url: https://github.com/lreimer/aws-ecr-operator
+  - name: Aws Ecr Operator
+    url: https://aws-ecr-operator.domain
   maintainers:
   - email: mario-leander.reimer@qaware.de
     name: lreimer
   maturity: alpha
   provider:
     name: M.-Leander Reimer
-    url: https://github.com/lreimer
-  version: 1.0.0
+    url: https://github.com/lreimer/aws-ecr-operator
+  version: 1.1.0
