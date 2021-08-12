@@ -2,4 +2,5 @@
 resources:
 - ecr_v1beta1_repository.yaml
 - ecr_v1beta1_repositorypolicy.yaml
+- ecr_v1beta1_repositorylifecycle.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

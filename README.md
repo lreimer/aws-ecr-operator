@@ -49,6 +49,35 @@ spec:
     }
 ```
 
+You can also apply Repository Lifecycle policies to your repository to control when images get
+expired using the `RepositoryLifecycle` CRD. See https://docs.aws.amazon.com/AmazonECR/latest/userguide/lifecycle_policy_examples.html
+```yaml
+apiVersion: ecr.aws.cloud.qaware.de/v1beta1
+kind: RepositoryLifecycle
+metadata:
+  name: demo-microservice-lifefycle
+spec:
+  repositoryName: demo-microservice
+  policyText: |-
+    {
+        "rules": [
+            {
+                "rulePriority": 1,
+                "description": "Expire images older than 14 days",
+                "selection": {
+                    "tagStatus": "untagged",
+                    "countType": "sinceImagePushed",
+                    "countUnit": "days",
+                    "countNumber": 14
+                },
+                "action": {
+                    "type": "expire"
+                }
+            }
+        ]
+    }    
+```
+
 ## Development
 
 ```bash
@@ -56,6 +85,7 @@ spec:
 $ operator-sdk init --project-version=3 --domain aws.cloud.qaware.de --repo github.com/lreimer/aws-ecr-operator
 $ operator-sdk create api --group ecr --version=v1beta1 --kind Repository --resource --controller
 $ operator-sdk create api --group ecr --version=v1beta1 --kind RepositoryPolicy --resource --controller
+$ operator-sdk create api --group ecr --version=v1beta1 --kind RepositoryLifecycle --resource --controller
 
 # install AWS SDK for Go v2
 $ go get github.com/aws/aws-sdk-go-v2
